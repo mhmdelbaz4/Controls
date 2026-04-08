@@ -1,0 +1,17 @@
+<div class="pagination p-2 d-flex justify-content-between align-items-center mt-2">
+  <p class="mb-0 fs-6_5 text-neturalColor-6" *ngIf="limit">
+    {{(dataObject.params.offset + 1 - 1) * limit + 1}} - {{(dataObject.params.offset + 1 - 1) * limit + serverData.length}}
+   <span class="text-placeholder"> {{transalte.currentLang == 'ar' ? 'من' : 'of'}} </span> {{totalRecords}}
+  </p>
+  <ul class="pagination-controls fs-6_5 d-flex gap-3 align-items-center list-unstyled">
+    <!-- <p (click)="previousPage()" [ngStyle]="{cursor: dataObject.params.offset + 1  == 1 ? 'not-allowed' : 'pointer', color: dataObject.params.offset + 1 == 1 || dataObject.params.offset + 1 == 0 || dataObject.params.offset + 1 < 1 ? 'gray' : 'black', fontWeight: dataObject.params.offset + 1 == 1 || dataObject.params.offset + 1 == 0 || dataObject.params.offset + 1 < 1 ? 'normal' : 'bold', pointerEvents: dataObject.params.offset + 1 == 1 ? 'none' : 'auto' }">Previous</p> -->
+    <li class="pagination-prev"><a href="javascript:void(0);" [ngStyle]="{pointerEvents: dataObject.params.offset + 1 == 1 ? 'none' : 'auto'}" (click)="previousPage()"  [ngClass]="{'disabled': dataObject.params.offset + 1  <= 1}"><img src="assets/images/grid/pagination-arrow.svg" alt=""></a></li>
+    <li class="page-item d-flex gap-2 align-items-center">
+      <p class="text-neturalColor-6">{{transalte.currentLang == 'ar' ? 'صفحة' : 'Page'}}</p>
+      <input type="number" class="form-control px-2 shadow-none text-center " (keydown)="enter($event)" appInput [totalPages]="totalPages"  [value]="dataObject.params.offset+1" min="{{dataObject.params.offset+1}}" max="{{totalPages}}">
+      <p class="col-3">  {{transalte.currentLang == 'ar' ? 'من' : 'of'}} {{totalPages}}</p>
+    </li>
+    <li class="pagination-next"><a href="javascript:void(0);" [ngStyle]="{pointerEvents: dataObject.params.offset + 1 == totalPages || dataObject.params.offset + 1 < 1 || dataObject.params.offset + 1 == 0 ? 'none' : 'auto'}" (click)="nextPage()" [ngClass]="{'disabled': dataObject.params.offset + 1 >= totalPages}"><img src="assets/images/grid/pagination-arrow.svg" alt=""> </a></li>
+    <!-- <div (click)="nextPage()" [ngStyle]="{cursor: dataObject.params.offset + 1 == totalPages ? 'not-allowed' : 'pointer', color: dataObject.params.offset + 1 == totalPages ? 'gray' : 'black', fontWeight: dataObject.params.offset + 1 == totalPages ? 'normal' : 'bold', pointerEvents: dataObject.params.offset + 1 == totalPages || dataObject.params.offset + 1 < 1 || dataObject.params.offset + 1 == 0 ? 'none' : 'auto' }" >Next</div> -->
+  </ul>
+</div>

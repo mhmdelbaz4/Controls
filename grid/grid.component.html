@@ -1,0 +1,910 @@
+<ng-container *ngIf="isLoading">
+  <ng-container *ngIf="loadingTemplate; else defaultLoader">
+    <ng-container *ngTemplateOutlet="loadingTemplate"></ng-container>
+  </ng-container>
+  <ng-template #defaultLoader>
+    <div class="loader-overlay">
+      <div class="spinner"></div>
+    </div>
+  </ng-template>
+</ng-container>
+<div
+  *ngIf="serverData.length"
+  class="table-responsive border-1 border flex-grow-1 rounded-2 rounded-bottom-0"
+  [ngClass]="{ 'flex-grow-1': serverData.length }"
+>
+  <table class="table grid-table mb-0">
+    <thead>
+      <tr>
+        <th
+          *ngIf="dataObject.showIndex"
+          class="fs-6_5 p-3 text-neturalColor-5 fw-medium"
+          scope="col"
+          style="width: 70px"
+        >
+          <div class="d-flex align-items-center text-center gap-1">
+            <span>#</span>
+            <!-- <div role="button" *ngIf="dataObject?.sorttable" class="fas fs-7 fa-sort mt-1" #sortIconId id="0" (click)="changeSort('id', sortIconId, 0)"></div> -->
+          </div>
+        </th>
+
+        <ng-container *ngFor="let column of dataObject?.columns; let i = index">
+          <ng-container
+            *ngIf="
+              !column.hide &&
+              (column.strictPermissionsCheck
+                ? hasAllPermissions(column.permissions ?? [])
+                : hasAnyPermission(column.permissions ?? []))
+            "
+          >
+            <!-- Skeleton Loader -->
+            <!-- <th><ngx-skeleton-loader></ngx-skeleton-loader></th> -->
+
+            <th
+              class="p-3"
+              scope="col"
+              #headerIcon
+              [ngStyle]="{ minWidth: column.width + 'px' }"
+            >
+              <div
+                class="d-flex align-items-center text-center justify-content-center gap-1"
+              >
+                <span>{{
+                  translate.currentLang == "ar"
+                    ? column.header
+                    : column.headerEn
+                }}</span>
+                <div *ngIf="column.infoIcon">
+                  <img
+                    class="filter-grayOpacity-7"
+                    [src]="
+                      column.infoIcon.icon || 'assets/images/icons/error-2.svg'
+                    "
+                    [ngbTooltip]="
+                      translate.currentLang == 'ar'
+                        ? column.infoIcon.ar
+                        : column.infoIcon.en
+                    "
+                  />
+                </div>
+                <div *ngIf="column.unit">
+                  <div *ngIf="column.unit.type == 'from_client'">
+                    <span>
+                      ({{
+                        this.translate.currentLang == "ar"
+                          ? column.unit.unitObject[column.unit.config.arKey]
+                          : column.unit.unitObject[column.unit.config.enKey]
+                      }})
+                    </span>
+                  </div>
+                </div>
+                <div
+                  role="button"
+                  *ngIf="column?.sorttable && dataObject?.sorttable"
+                  class="fas fa-sort mt-1"
+                  #sortIcon
+                  id="{{ i }}"
+                  (click)="changeSort(column.key, sortIcon, i)"
+                ></div>
+              </div>
+            </th>
+          </ng-container>
+        </ng-container>
+      </tr>
+    </thead>
+    <tbody
+      [ngClass]="{ 'has-pages': serverData.length && serverData.length > 5 }"
+    >
+      <tr
+        *ngFor="let data of serverData; let i = index"
+        (click)="handleRowClick(data)"
+        class="row-hover"
+      >
+        <td *ngIf="dataObject.showIndex" class="p-3 text-center grid-data">
+          {{ dataObject.params.offset * (limit || 10) + i + 1 }}
+        </td>
+        <ng-container *ngFor="let column of dataObject.columns">
+          <!-- Skeleton Loader -->
+          <!-- <td><ngx-skeleton-loader></ngx-skeleton-loader></td> -->
+
+          <!-- column.hide != true is the orignal -->
+          <ng-container
+            *ngIf="
+              !column.hide &&
+              (column.strictPermissionsCheck
+                ? hasAllPermissions(column.permissions ?? [])
+                : hasAnyPermission(column.permissions ?? []))
+            "
+          >
+            <ng-container>
+              <ng-container *ngIf="column.type == 'number'">
+                <td class="p-3 text-center grid-data">
+                  <span
+                    class="d-inline-flex number fw-semibold align-items-center justify-content-center"
+                    [ngClass]="column.classes"
+                    >{{ data[column.key] | number }}</span
+                  >
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type == 'text'">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                >
+                  <div
+                    class="grid-tooltip"
+                    [attr.data-tooltip-title]="
+                      !column.multiKeys
+                        ? data[column.key]
+                        : translate.currentLang == 'ar'
+                        ? data[column.multiKeys.arKey]
+                        : data[column.multiKeys.enKey]
+                    "
+                  >
+                    <span
+                      class="text-truncate text-name"
+                      [ngClass]="{
+                        'en-text': isEnLangText(
+                          !column.multiKeys
+                            ? data[column.key]
+                            : translate.currentLang == 'ar'
+                            ? data[column.multiKeys.arKey]
+                            : data[column.multiKeys.enKey]
+                        )
+                      }"
+                    >
+                      {{
+                        !column.multiKeys
+                          ? data[column.key]
+                          : translate.currentLang == "ar"
+                          ? data[column.multiKeys.arKey]
+                          : data[column.multiKeys.enKey]
+                      }}
+                    </span>
+                  </div>
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type == 'url'">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                  *ngIf="column.urlConfig?.targetcolumnKey"
+                >
+                  <a
+                    class="text-decoration-underline"
+                    [href]="data[column.urlConfig?.targetcolumnKey!]"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    *ngIf="data[column.key]"
+                  >
+                    <img
+                      src="assets/images/icons/link.svg"
+                      [alt]="data[column.key]"
+                      class="img-fluid"
+                    />
+                    <!-- {{ data[column.key] }} -->
+                  </a>
+                  <span *ngIf="!data[column.key]">{{
+                    translate.currentLang == "ar" ? "لا يوجد" : "No Data"
+                  }}</span>
+                  <!-- <a [href]="'//' + data[column.urlConfig?.targetcolumnKey!]">{{ data[column.key] }}</a> -->
+                </td>
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                  *ngIf="column.urlConfig?.textKey"
+                >
+                  <a
+                    [href]="data[column.urlConfig?.urlKey!]"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ data[column.urlConfig?.textKey!] }}
+                  </a>
+                  <!-- <a [href]="'//' + data[column.urlConfig?.urlKey!]">{{ data[column.urlConfig?.textKey!] }}</a> -->
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type == 'video_url'">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                  *ngIf="column.urlConfig?.targetcolumnKey"
+                >
+                  <a
+                    *ngIf="
+                      data[column.urlConfig?.targetcolumnKey!] &&
+                      data[column.urlConfig?.targetcolumnKey!] != ''
+                    "
+                    [href]="data[column.urlConfig?.targetcolumnKey!]"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{
+                      translate.currentLang == "ar"
+                        ? column.videoUrlConfig?.ar
+                        : column.videoUrlConfig?.en
+                    }}
+                  </a>
+                  <span
+                    *ngIf="
+                      !data[column.urlConfig?.targetcolumnKey!] ||
+                      data[column.urlConfig?.targetcolumnKey!] == ''
+                    "
+                    >{{
+                      translate.currentLang == "ar" ? "لا يوجد" : "No Data"
+                    }}</span
+                  >
+                  <!-- <a [href]="'//' + data[column.urlConfig?.targetcolumnKey!]">{{ data[column.key] }}</a> -->
+                </td>
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                  *ngIf="column.urlConfig?.textKey"
+                >
+                  <a
+                    [href]="data[column.urlConfig?.urlKey!]"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ data[column.urlConfig?.textKey!] }}
+                  </a>
+                  <!-- <a [href]="'//' + data[column.urlConfig?.urlKey!]">{{ data[column.urlConfig?.textKey!] }}</a> -->
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type == 'price'">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                >
+                  {{
+                    data[column.key]
+                      | currency : currencySymbol : "symbol" : "1.0"
+                  }}
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type === 'date'">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                >
+                  {{ data[column.key] | dateLocale : column.formatter }}
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type == 'color'">
+                <td
+                  class="p-3 text-center grid-data"
+                  class="text-center d-flex justify-content-center align-items-center"
+                >
+                  <div
+                    [ngStyle]="{ 'background-color': data[column.key] }"
+                    class="color-td"
+                  ></div>
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type == 'image'">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                >
+                  <div class="grid-image">
+                    <img
+                      [src]="
+                        column.imagePathPrefix
+                          ? column.imagePathPrefix + data[column.key]
+                          : data[column.key]
+                      "
+                      [alt]="data[column.key]"
+                    />
+                  </div>
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type == 'multiple_values'">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                >
+                  <div class="d-flex gap-1 align-items-center">
+                    <span
+                      class="col-12 d-flex align-items-center gap-2 text-center"
+                      *ngIf="data[column.key].length"
+                    >
+                      <ng-container *ngIf="column.subKey"
+                        >{{
+                          translate.currentLang == "ar"
+                            ? data[column.key][column.subKey][0]?.arName
+                            : data[column.key][column.subKey][0]?.enName
+                        }}
+                        <span
+                          class="main-value fs-7 fw-medium text-neturalColor-5 bg-grayOpacity-1 rounded-5 py-1 px-3"
+                          *ngIf="data[column.key][column.subKey].length > 1"
+                          data-bs-target="#viewRoleModal"
+                          data-bs-toggle="modal"
+                          role="button"
+                          (click)="
+                            rolePermissions = data[column.key][column.subKey];
+                            popupTitle = column.popupTitle ?? popupTitle;
+                            popupSubTitle =
+                              column.popupSubTitle &&
+                              data[column.popupSubTitle.ar] &&
+                              data[column.popupSubTitle.en]
+                                ? {
+                                    ar: data[column.popupSubTitle.ar],
+                                    en: data[column.popupSubTitle.en]
+                                  }
+                                : popupSubTitle
+                          "
+                          >{{
+                            data[column.key][column.subKey].length - 1
+                          }}</span
+                        >
+                      </ng-container>
+                      <ng-container *ngIf="!column.subKey">
+                        <span
+                          class="main-value fs-7 fw-medium text-neturalColor-5 bg-grayOpacity-1 rounded-5 py-1 px-3"
+                        >
+                          {{
+                            translate.currentLang == "ar"
+                              ? data[column.key][0].arName
+                              : data[column.key][0].enName
+                          }}
+                        </span>
+                        <span
+                          class="value-counter btn-outline-primary btn rounded-5"
+                          *ngIf="data[column.key].length > 1"
+                        >
+                          <span
+                            class="fw-medium"
+                            data-bs-target="#viewRoleModal"
+                            data-bs-toggle="modal"
+                            role="button"
+                            (click)="
+                              rolePermissions = data[column.key];
+                              popupTitle = column.popupTitle ?? popupTitle;
+                              popupSubTitle =
+                                column.popupSubTitle &&
+                                data[column.popupSubTitle.ar] &&
+                                data[column.popupSubTitle.en]
+                                  ? {
+                                      ar: data[column.popupSubTitle.ar],
+                                      en: data[column.popupSubTitle.en]
+                                    }
+                                  : popupSubTitle
+                            "
+                            >{{ data[column.key].length - 1 }}+</span
+                          ></span
+                        ></ng-container
+                      >
+                    </span>
+                    <span *ngIf="!data[column.key].length">
+                      {{
+                        translate.currentLang == "ar"
+                          ? column.noDataMessageAr ?? "لا توجد بيانات"
+                          : column.noDataMessageEn ?? "No found data"
+                      }}</span
+                    >
+                  </div>
+                </td>
+              </ng-container>
+              <ng-container
+                *ngIf="
+                  column.type == 'toggle' &&
+                  column.toggleConfig &&
+                  column.toggleConfig[data[column.key]].function
+                "
+              >
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes ? column.classes : ''"
+                >
+                  <div
+                    class="form-check form-switch d-flex align-items-center justify-content-center px-0"
+                  >
+                    <input
+                      #tooltip="ngbTooltip"
+                      #inputRef
+                      role="button"
+                      class="form-check-input m-0 float-none"
+                      type="checkbox"
+                      [ngbTooltip]="
+                        translate.currentLang == 'ar'
+                          ? column.toggleConfig[data[column.key]].tooltip
+                          : column.toggleConfig[data[column.key]].tooltipEn
+                      "
+                      [checked]="data[column.key] == true"
+                      id="{{ column.key }}--{{ i }}"
+                      (click)="
+                        $event.stopPropagation();
+                        $event.preventDefault();
+                        column.toggleConfig[data[column.key]].function(
+                          data,
+                          dataObject.columns
+                        )
+                      "
+                      (mouseup)="tooltip.close()"
+                      (mouseleave)="tooltip.close()"
+                      (onfocus)="tooltip.close()"
+                    />
+                    <label
+                      (click)="tooltip.close()"
+                      *ngIf="data[column.key] == true"
+                      class="custom-control-label"
+                      for="{{ column.key }}--{{ i }}"
+                    ></label>
+                    <label
+                      (click)="tooltip.close()"
+                      *ngIf="data[column.key] == false"
+                      class="custom-control-label"
+                      for="{{ column.key }}--{{ i }}"
+                    ></label>
+                  </div>
+                </td>
+              </ng-container>
+              <ng-container
+                *ngIf="column.type == 'text_image' && column.textImageConfig"
+              >
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column?.classes ?? ''"
+                >
+                  <div class="d-flex align-items-start gap-2">
+                    <img
+                      width="19"
+                      [src]="
+                        (column.imagePathPrefix || '') +
+                        data[column.key][column.textImageConfig.imageKey]
+                      "
+                      [alt]="data[column.key][column.textImageConfig.enKey]"
+                      onerror="this.onerror=null;this.src='assets/images/avatars/avatar.svg';"
+                      class="img-fluid filter-primary"
+                    />
+                    <span
+                      class="ml-2 text-truncate text-left"
+                      *ngIf="translate.currentLang == 'ar'"
+                      >{{
+                        data[column.key][column.textImageConfig.arKey]
+                      }}</span
+                    >
+                    <span
+                      class="ml-2 text-truncate text-left"
+                      *ngIf="translate.currentLang == 'en'"
+                      >{{
+                        data[column.key][column.textImageConfig.enKey]
+                      }}</span
+                    >
+                  </div>
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type == 'multiple_keys'">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                >
+                  <div class="d-flex align-items-center justify-content-center">
+                    <ng-container *ngFor="let key of column.keys">
+                      <img
+                        *ngIf="key.type == 'image'"
+                        src="{{ data[key['key']].path }}"
+                        alt=""
+                        class="img-fluid custom-img"
+                      />
+                      <span class="ml-2" *ngIf="key.type == 'text'">{{
+                        translate.currentLang == "ar"
+                          ? data[key["key"]]
+                          : data[key["key"] + "En"]
+                      }}</span>
+                    </ng-container>
+                  </div>
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type == 'multiple_Attachments'">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                >
+                  <div
+                    class="d-flex align-items-center gap-2 attach-icon"
+                    *ngIf="
+                      column.attachmentsConfig?.attachmentTypeKey &&
+                      data[column.key].length
+                    "
+                  >
+                    <ng-container
+                      *ngFor="let row of data[column.key].slice(0, 3)"
+                    >
+                      <img
+                        src="assets/images/icons/export-{{
+                          getFileExtension(
+                            row[column.attachmentsConfig!.attachmentTypeKey!]
+                          )
+                        }}.svg"
+                        [alt]="
+                          'export ' +
+                          getFileExtension(
+                            row[column.attachmentsConfig!.attachmentTypeKey!]
+                          ) +
+                          ' icon'
+                        "
+                        (click)="
+                          column.attachmentsConfig!.function &&
+                            column.attachmentsConfig!.function(
+                              row,
+                              dataObject.columns
+                            )
+                        "
+                        width="20"
+                      />
+                      <!-- <img
+                        src="assets/images/icons/export-{{ getFileExtension(data[column.key][data[column.key].length - 1][column.attachmentsConfig!.attachmentTypeKey!]) }}.svg"
+                        [alt]="'export ' + getFileExtension(data[column.key][data[column.key].length - 1][column.attachmentsConfig!.attachmentTypeKey!]) + ' icon'"
+                        (click)="column.attachmentsConfig!.function && column.attachmentsConfig!.function(data[column.key][data[column.key].length - 1], dataObject.columns)"
+                        width="20"
+                      /> -->
+
+                      <!-- {{ row[data[column.attachmentTypeKey]] | json }} -->
+                      <!-- <img *ngIf="key.type == 'image'" src="{{ data[key].type }}" alt="" class="img-fluid custom-img" /> -->
+                    </ng-container>
+                    <span
+                      (click)="
+                        column.attachmentsConfig!.function &&
+                          column.attachmentsConfig!.function(
+                            data[column.key],
+                            dataObject.columns
+                          )
+                      "
+                      class="counter fs-7 fw-medium text-primary border border-primary rounded-5 pt-1 px-2"
+                      *ngIf="data[column.key].length > 3"
+                      role="button"
+                      >{{ data[column.key].length - 3 }} +</span
+                    >
+                  </div>
+                  <div
+                    class="d-flex align-items-center gap-2"
+                    *ngIf="!data[column.key].length"
+                  >
+                    <ng-container>
+                      <span>{{
+                        translate.currentLang == "ar" ? "لا يوجد" : "No Data"
+                      }}</span>
+                    </ng-container>
+                  </div>
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column?.type == 'subkeys' && column.subKey">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column?.classes ?? ''"
+                >
+                  <div class="d-flex align-items-center justify-content-center">
+                    <span>{{ data?.[column.key]?.[column.subKey] ?? '' }}</span>
+                  </div>
+                </td>
+              </ng-container>
+              <ng-container
+                *ngIf="column?.type == 'subkeys' && column.multiKeys"
+              >
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column?.classes ?? ''"
+                >
+                  <!-- <div class="d-flex align-items-center justify-content-center"> -->
+                  <span
+                    >{{ translate.currentLang == 'ar' ? data?.[column.key]?.[column.multiKeys.arKey] : data?.[column.key]?.[column.multiKeys.enKey] }}</span
+                  >
+                  <!-- </div> -->
+                </td>
+              </ng-container>
+              <ng-container
+                *ngIf="column.type == 'status' && column.statusConfig"
+              >
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                >
+                  <ng-container *ngIf="column.subKeys">
+                    <span
+                      *ngIf="translate.currentLang == 'ar'"
+                      [ngClass]="
+                        column.statusConfig[data[column.key]].classes ?? ''
+                      "
+                      (click)="
+                        column.statusConfig[data[column.key]].function(
+                          data,
+                          dataObject.columns
+                        )
+                      "
+                    >
+                      {{
+                        column.statusConfig[data[column.key][column.subKeys]]
+                          .text
+                      }}
+                    </span>
+                    <span
+                      *ngIf="translate.currentLang == 'en'"
+                      (click)="
+                        column.statusConfig[data[column.key]].function(
+                          data,
+                          dataObject.columns
+                        )
+                      "
+                      [ngClass]="
+                        column.statusConfig[data[column.key]].classes ?? ''
+                      "
+                    >
+                      {{
+                        column.statusConfig[data[column.key][column.subKeys]]
+                          .textEn
+                      }}
+                    </span>
+                  </ng-container>
+
+                  <ng-container *ngIf="!column.subKeys">
+                    <span
+                      *ngIf="translate.currentLang == 'ar'"
+                      (click)="
+                        column.statusConfig[data[column.key]].function(
+                          data,
+                          dataObject.columns
+                        )
+                      "
+                      [ngClass]="column.statusConfig[data[column.key]]!.classes"
+                    >
+                      {{ column.statusConfig[data[column.key]]!.text }}
+                    </span>
+                    <span
+                      *ngIf="translate.currentLang == 'en'"
+                      (click)="
+                        column.statusConfig[data[column.key]].function(
+                          data,
+                          dataObject.columns
+                        )
+                      "
+                      [ngClass]="column.statusConfig[data[column.key]]!.classes"
+                    >
+                      {{ column.statusConfig[data[column.key]]!.textEn }}
+                    </span>
+                  </ng-container>
+
+                  <img
+                    src="{{ column.statusConfig[data[column.key]].imagePath }}"
+                    alt=""
+                    *ngIf="column.statusConfig[data[column.key]]?.imagePath"
+                    (click)="
+                      column.statusConfig[data[column.key]].function(
+                        data,
+                        dataObject.columns
+                      )
+                    "
+                  />
+                </td>
+              </ng-container>
+              <ng-container *ngIf="column.type == 'actions'">
+                <td
+                  class="p-3 text-center grid-data"
+                  [ngClass]="column.classes"
+                >
+                  <div class="dropdown d-flex justify-content-center">
+                    <button
+                      *ngIf="column.actions!.length > 3"
+                      class="btn border-0 d-flex align-items-center gap-2"
+                      type="button"
+                      #actionBtn
+                      (click)="
+                        toggleDropdown($event, i, actionBtn, dropdownMenu)
+                      "
+                    >
+                      <img src="assets/images/icons/dots.svg" alt="icon bell" />
+                    </button>
+                    <ul
+                      #dropdownMenu
+                      class="gap-2 rounded-3"
+                      id="actionDropdown"
+                      [ngClass]="{
+                        'custom-dropdown-menu flex-column border border-neturalColor-1':
+                          column.actions!.length > 3,
+                        'd-flex': column.actions!.length <= 3,
+
+                        show: column.actions!.length > 3 && openedRowId === i,
+                        upword:
+                          dropdownPositionMap &&
+                          dropdownPositionMap[i] &&
+                          dropdownPositionMap[i].dir === 'bottom',
+                        downword:
+                          dropdownPositionMap &&
+                          dropdownPositionMap[i] &&
+                          dropdownPositionMap[i].dir === 'top'
+                      }"
+                      [ngStyle]="{
+                        top:
+                          dropdownPositionMap &&
+                          dropdownPositionMap[i] &&
+                          dropdownPositionMap[i].top,
+                        left:
+                          dropdownPositionMap &&
+                          dropdownPositionMap[i] &&
+                          dropdownPositionMap[i].instetInlineEnd
+                      }"
+                      (click)="$event.stopPropagation()"
+                    >
+                      <ng-container *ngFor="let action of column.actions">
+                        <ng-container
+                          *ngIf="
+                            action.checkAllPermissions
+                              ? hasAnyPermission(action.permissions ?? [])
+                              : hasAllPermissions(action.permissions ?? [])
+                          "
+                        >
+                          <ng-container
+                            *ngIf="
+                              action.type === 'keyAction' &&
+                              action.key &&
+                              action.config
+                            "
+                          >
+                            <ng-container
+                              *ngFor="let statusKey of action.config | keyvalue"
+                            >
+                              <ng-container
+                                *ngIf="
+                                  data[action.key] ==
+                                  (statusKey.key == 'true'
+                                    ? true
+                                    : statusKey.key == 'false'
+                                    ? false
+                                    : statusKey.key)
+                                "
+                              >
+                                <li
+                                  [ngClass]="{
+                                    'px-3 py-1': column.actions!.length > 3
+                                  }"
+                                  class="action-icon d-flex align-items-center gap-1"
+                                  (click)="
+                                    action.config[data[action.key]].function(
+                                      data,
+                                      dataObject.columns
+                                    )
+                                  "
+                                >
+                                  <div>
+                                    <img
+                                      width="20"
+                                      [ngClass]="{
+                                        'filter-neturalColor-9':
+                                          column.actions!.length > 3
+                                      }"
+                                      [src]="
+                                        action.config[data[action.key]]
+                                          .imagePath
+                                      "
+                                      *ngIf="
+                                        action.config[data[action.key]]
+                                          .imagePath
+                                      "
+                                      [ngbTooltip]="
+                                        column.actions!.length <= 3
+                                          ? translate.currentLang == 'ar'
+                                            ? action.config[data[action.key]]
+                                                .tooltip
+                                            : action.config[data[action.key]]
+                                                .tooltipEn
+                                          : null
+                                      "
+                                    />
+                                  </div>
+                                  <span
+                                    class="fs-6_5 text-neturalColor-9"
+                                    *ngIf="column.actions!.length > 3"
+                                    >{{
+                                      translate.currentLang == "ar"
+                                        ? action.config[data[action.key]]
+                                            .tooltip
+                                        : action.config[data[action.key]]
+                                            .tooltipEn
+                                    }}</span
+                                  >
+                                </li>
+                              </ng-container>
+                            </ng-container>
+                          </ng-container>
+
+                          <ng-container *ngIf="action.type === 'rowAction'">
+                            <!-- <span *ngIf="action.text" (click)="action.function(data, dataObject.columns)">{{action.text}}</span> -->
+                            <ng-container *ngIf="action.imagePath">
+                              <li
+                                [ngClass]="{
+                                  'px-3 py-1': column.actions!.length > 3,
+                                  disabled: action.disabled
+                                }"
+                                class="action-icon d-flex align-items-center gap-1"
+                                (click)="
+                                  action.function(data, dataObject.columns)
+                                "
+                              >
+                                <div>
+                                  <img
+                                    width="20"
+                                    [ngClass]="{
+                                      'filter-neturalColor-9':
+                                        column.actions!.length > 3
+                                    }"
+                                    *ngIf="action.imagePath"
+                                    [src]="action.imagePath"
+                                    [ngbTooltip]="
+                                      column.actions!.length <= 3
+                                        ? translate.currentLang == 'ar'
+                                          ? action.tooltip
+                                          : action.tooltipEn
+                                        : null
+                                    "
+                                  />
+                                </div>
+                                <span
+                                  class="fs-6_5 text-neturalColor-9"
+                                  *ngIf="column.actions!.length > 3"
+                                  >{{
+                                    translate.currentLang == "ar"
+                                      ? action.tooltip
+                                      : action.tooltipEn
+                                  }}</span
+                                >
+                              </li>
+                            </ng-container>
+                          </ng-container>
+                        </ng-container>
+                      </ng-container>
+                    </ul>
+                  </div>
+                </td>
+              </ng-container>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<app-grid-pagination
+  *ngIf="serverData.length && totalPages > 0"
+  [currentPage]="currentPage"
+  [count]="count"
+  [totalPages]="totalPages"
+  [dataObject]="dataObject"
+  [serverData]="serverData"
+  [limit]="limit"
+  [totalRecords]="totalRecords"
+  [searchObject]="searchObj"
+  (changePage)="onChangePage($event)"
+></app-grid-pagination>
+
+<ng-container *ngIf="!isLoading && (!serverData || serverData.length === 0)">
+  <!-- On initial load with no data: show emptyTemplate if provided, otherwise show nothing -->
+  <ng-container *ngIf="initialLoad && emptyTemplate">
+    <ng-container *ngTemplateOutlet="emptyTemplate"></ng-container>
+  </ng-container>
+  <!-- After initial load: show defaultNoData when there's no data -->
+  <ng-container *ngIf="!initialLoad && !(initialLoad && emptyTemplate)">
+    <ng-container *ngTemplateOutlet="defaultNoData"></ng-container>
+  </ng-container>
+</ng-container>
+<ng-template #defaultNoData>
+  <div class="d-flex justify-content-center flex-grow-1 flex-column align-items-center gap-2 no-results">
+    <div>
+      <img src="assets/images/svg/NotFoundGrideResult.svg" alt="no result image" />
+    </div>
+    <p class="mt-3 text-black fs-5 fw-semibold">
+      {{ translate.currentLang === 'ar' ? 'لا يوجد نتائج متاحة' : 'No data available' }}
+    </p>
+  </div>
+</ng-template>
+
+
+<!-- <app-roles-list [rolePermissions]="rolePermissions" [title]="popupTitle" [subTitle]="popupSubTitle"></app-roles-list> -->
+
+<!-- dummy elemnent to un blur toggle action *****DONT REMOVE IT"S NOT REFELCT IN UI**** -->
+<button
+  #blurTarget
+  style="position: absolute; opacity: 0; pointer-events: none"
+  tabindex="-1"
+>
+  blur target
+</button>

@@ -1,0 +1,21 @@
+@import "../../../../../assets/scss/mixins";
+.pagination{
+  border-color: #E6E9ED;
+  .pagination-prev{
+   @include rtl(scale, 1 1, -1 1)
+  }
+  .pagination-next{
+   @include rtl(scale, -1 1, 1 1)
+  }
+  input[type=number]{
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+}

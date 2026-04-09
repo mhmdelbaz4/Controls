@@ -1,0 +1,116 @@
+<div class="sorted-grid searchable-sorted-grid">
+  @if (elements().length === 0) {
+    <div class="sorted-grid__empty-state" role="status">
+      <span class="sorted-grid__empty-icon" aria-hidden="true"></span>
+      <p class="sorted-grid__empty-msg">No rows to display.</p>
+    </div>
+  } @else {
+    <div class="searchable-sorted-grid__toolbar">
+      <label class="searchable-sorted-grid__search-label" for="searchable-sorted-grid-search">
+        Search
+      </label>
+      <div class="searchable-sorted-grid__search-row">
+        <input
+          id="searchable-sorted-grid-search"
+          type="search"
+          class="searchable-sorted-grid__search-input"
+          placeholder="Search all columns…"
+          [value]="searchQuery()"
+          (input)="onSearchInput($any($event.target).value)"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        @if (hasActiveSearch()) {
+          <button
+            type="button"
+            class="searchable-sorted-grid__clear"
+            (click)="clearSearch()"
+          >
+            Clear
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="sorted-grid__shell">
+      <div class="sorted-grid__table-wrap">
+        <table class="sorted-grid__table">
+          <thead>
+            <tr>
+              @for (key of columnKeys(); track key) {
+                <th scope="col" [attr.aria-sort]="ariaSort(key)">
+                  <button
+                    type="button"
+                    class="sorted-grid__th-btn"
+                    (click)="onSortColumn(key)"
+                  >
+                    <span class="sorted-grid__th-label">{{ key }}</span>
+                    <span class="sorted-grid__sort" aria-hidden="true">
+                      @if (sortColumn() !== key) {
+                        <span class="sorted-grid__sort-default">
+                          <span class="sorted-grid__caret sorted-grid__caret--up"></span>
+                          <span class="sorted-grid__caret sorted-grid__caret--down"></span>
+                        </span>
+                      } @else if (sortDir() === 'asc') {
+                        <span class="sorted-grid__caret sorted-grid__caret--up sorted-grid__caret--active"></span>
+                      } @else {
+                        <span class="sorted-grid__caret sorted-grid__caret--down sorted-grid__caret--active"></span>
+                      }
+                    </span>
+                  </button>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @if (filteredElements().length === 0) {
+              <tr>
+                <td class="searchable-sorted-grid__no-match" [attr.colspan]="columnKeys().length || 1">
+                  No rows match your search.
+                </td>
+              </tr>
+            } @else {
+              @for (row of pagedElements(); track $index) {
+                <tr>
+                  @for (key of columnKeys(); track key) {
+                    <td>{{ cellValue(row, key) }}</td>
+                  }
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <nav class="sorted-grid__footer" aria-label="Grid pagination">
+        <p class="sorted-grid__meta">
+          <span class="sorted-grid__meta-strong">Page {{ currentPage() }} of {{ totalPages() }}</span>
+          <span class="sorted-grid__meta-sep" aria-hidden="true"></span>
+          <span>{{ filteredElements().length }} items</span>
+          @if (hasActiveSearch() && filteredElements().length !== elements().length) {
+            <span class="sorted-grid__meta-sep" aria-hidden="true"></span>
+            <span>{{ elements().length }} total</span>
+          }
+        </p>
+        <div class="sorted-grid__pager" role="group" aria-label="Page navigation">
+          <button
+            type="button"
+            class="sorted-grid__btn"
+            [disabled]="!canPrev()"
+            (click)="goPrev()"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            class="sorted-grid__btn"
+            [disabled]="!canNext()"
+            (click)="goNext()"
+          >
+            Next
+          </button>
+        </div>
+      </nav>
+    </div>
+  }
+</div>
